@@ -109,7 +109,7 @@ const POOLS = {
   [TRAIT]: WORDS.traits,
 };
 
-const IMAGE_SEARCH = "https://duckduckgo.com/?iax=images&ia=images&q=";
+const IMAGE_SEARCH = "https://search.brave.com/images?q=";
 const INITIAL_COUNT = 5;
 const VISIBLE_COUNT = 5;
 const MAX_PHRASES = 100;

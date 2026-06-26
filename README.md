@@ -8,7 +8,7 @@ No build step, no backend. Just HTML, CSS, and vanilla JavaScript.
 
 - On load, **5 phrases** are generated automatically.
 - Click the **red button** (or press **Space** / **Enter**) to generate another.
-- Each phrase is a link to **HTTPS** [DuckDuckGo image search](https://duckduckgo.com/).
+- Each phrase is a link to **HTTPS** [Brave image search](https://search.brave.com/images).
 - Phrases are stored internally (up to **100**). Only **5** are shown at a time.
 - **Scroll** or **swipe** over the card area to browse older and newer phrases — there is no scrollable list element; the visible window re-renders as you move through history.
 
