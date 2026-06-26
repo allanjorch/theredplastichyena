@@ -11,6 +11,7 @@ No build step, no backend. Just HTML, CSS, and vanilla JavaScript.
 - Each phrase is a link to **HTTPS** [Brave image search](https://search.brave.com/images).
 - Phrases are stored internally (up to **100**). Only **5** are shown at a time.
 - **Scroll** or **swipe** over the card area to browse older and newer phrases — there is no scrollable list element; the visible window re-renders as you move through history.
+- While a phrase is sliding in, generate and scroll inputs are ignored until the animation finishes.
 
 ### Phrase structure
 
@@ -25,6 +26,7 @@ Examples: `golden bouncy zebra`, `fluorescent anxious armadillo`.
 - **Red button** — glossy SVG circle with a tight red ring; the main control for generating phrases.
 - **CREATIVE SPARKS** — curved SVG text beneath the button, styled as a subtle smile.
 - **Phrase cards** — warm cream gradient, soft plastic shine, and hover lift.
+- **Slide-in animation** — a new phrase drops in from above while the stack shifts down as one unit; the bottom card fades out past the clip edge. Card shadows stay visible throughout.
 
 The layout scales with the viewport via a `--ui-scale` factor so spacing and type stay balanced on different screen sizes.
 
@@ -32,9 +34,9 @@ The layout scales with the viewport via a `--ui-scale` factor so spacing and typ
 
 | File | Purpose |
 |------|---------|
-| `index.html` | Page structure |
-| `style.css` | Layout, scaling, and visual design |
-| `app.js` | Phrase generation, windowed list, and input handling |
+| `index.html` | Page structure and phrase viewport (`phrase-window` / `phrase-stage`) |
+| `style.css` | Layout, scaling, clip/shadow gutters, and visual design |
+| `app.js` | Phrase generation, slide animation, windowed list, and input handling |
 
 Word lists are embedded in `app.js`.
 
@@ -51,3 +53,7 @@ Then visit `http://localhost:8000`.
 ## License
 
 Personal project. Use and adapt as you like.
+
+## Credits
+
+Slide-in animation and polish: **Grok** (xAI), pair-programming with Allan.

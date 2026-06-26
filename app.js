@@ -115,13 +115,16 @@ const VISIBLE_COUNT = 5;
 const MAX_PHRASES = 100;
 const SWIPE_THRESHOLD = 48;
 const VIEWPORT_REF = 390;
+const PHRASE_ENTER_MS = 850;
 
 const list = document.getElementById("phrases");
 const phraseWindow = document.getElementById("phrase-window");
+const phraseStage = document.getElementById("phrase-stage");
 const generateButton = document.getElementById("generate");
 
 const phrases = [];
 let viewOffset = 0;
+let phraseAnimLock = false;
 
 function pick(items) {
   return items[(Math.random() * items.length) | 0];
@@ -172,16 +175,165 @@ function renderPhrases() {
   });
 }
 
+function prefersReducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function updatePhraseAnimDurations() {
+  document.documentElement.style.setProperty(
+    "--phrase-enter-duration",
+    `${PHRASE_ENTER_MS}ms`
+  );
+}
+
+const PHRASE_ENTER_EASING = "cubic-bezier(0.37, 0, 0.24, 1)";
+
+let slideAnimations = null;
+
+function measureSlotStride() {
+  const first = list.firstElementChild;
+  const second = list.children[1];
+  if (first && second) {
+    return second.getBoundingClientRect().top - first.getBoundingClientRect().top;
+  }
+  if (!first) {
+    return 0;
+  }
+  const gap = Number.parseFloat(getComputedStyle(list).rowGap) || 0;
+  return first.offsetHeight + gap;
+}
+
+function settleSlideAnimations() {
+  if (!slideAnimations) {
+    return;
+  }
+  for (const animation of slideAnimations) {
+    animation.commitStyles?.();
+    animation.cancel();
+  }
+  slideAnimations = null;
+}
+
+function finishPhraseSlide() {
+  const exiting =
+    list.children.length > VISIBLE_COUNT ? list.lastElementChild : null;
+
+  settleSlideAnimations();
+  exiting?.remove();
+
+  for (const item of list.children) {
+    item.classList.remove("phrase-enter", "phrase-exit", "phrase-slide");
+    item.style.transform = "";
+    item.style.opacity = "";
+  }
+
+  phraseStage.classList.remove("is-clipping");
+  phraseStage.style.removeProperty("--phrase-viewport-height");
+  list.classList.remove("is-adding");
+  phraseAnimLock = false;
+}
+
+function applySlideStartState(slotStride) {
+  const items = [...list.children];
+  const offset = `translateY(-${slotStride}px)`;
+
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index];
+    const isEntering = index === 0;
+    const isExiting = index === items.length - 1 && items.length > VISIBLE_COUNT;
+
+    item.classList.add("phrase-slide");
+    item.style.transform = offset;
+    item.style.opacity = isEntering ? "0" : "1";
+
+    if (isEntering) {
+      item.classList.add("phrase-enter");
+    } else if (isExiting) {
+      item.classList.add("phrase-exit");
+    }
+  }
+}
+
+function runSlideAnimations(slotStride) {
+  const items = [...list.children];
+  const slideDistance = `${slotStride}px`;
+  const animOptions = {
+    duration: PHRASE_ENTER_MS,
+    easing: PHRASE_ENTER_EASING,
+    fill: "forwards",
+  };
+
+  slideAnimations = items.map((item, index) => {
+    const isEntering = index === 0;
+    const isExiting = index === items.length - 1 && items.length > VISIBLE_COUNT;
+    const from = { transform: `translateY(-${slideDistance})` };
+    const to = { transform: "translateY(0)" };
+
+    if (isEntering) {
+      from.opacity = 0;
+      to.opacity = 1;
+    } else if (isExiting) {
+      from.opacity = 1;
+      to.opacity = 0;
+    }
+
+    return item.animate([from, to], animOptions);
+  });
+
+  Promise.all(slideAnimations.map((animation) => animation.finished))
+    .then(() => {
+      if (slideAnimations) {
+        finishPhraseSlide();
+      }
+    })
+    .catch(() => {
+      finishPhraseSlide();
+    });
+}
+
+function animateAddAtTop(phrase) {
+  const slotStride = measureSlotStride();
+  const newItem = createPhraseItem(phrase);
+  phraseAnimLock = true;
+  list.classList.add("is-adding");
+  phraseStage.classList.add("is-clipping");
+  phraseStage.style.setProperty(
+    "--phrase-viewport-height",
+    `${slotStride * VISIBLE_COUNT}px`
+  );
+  list.prepend(newItem);
+  applySlideStartState(slotStride);
+
+  requestAnimationFrame(() => {
+    runSlideAnimations(slotStride);
+  });
+}
+
 function addPhrase() {
+  if (phraseAnimLock) {
+    return;
+  }
+
+  const wasAtTop = viewOffset === 0;
   phrases.unshift(generatePhrase());
   if (phrases.length > MAX_PHRASES) {
     phrases.length = MAX_PHRASES;
   }
   viewOffset = 0;
+
+  if (wasAtTop && list.children.length > 0 && !prefersReducedMotion()) {
+    animateAddAtTop(phrases[0]);
+    return;
+  }
+
   renderPhrases();
 }
 
 function navigate(direction) {
+  if (phraseAnimLock) {
+    return false;
+  }
+
   const nextOffset = viewOffset + direction;
   if (nextOffset < 0 || nextOffset > maxOffset()) {
     return false;
@@ -263,6 +415,7 @@ phraseWindow.addEventListener(
 
 window.addEventListener("resize", updateViewportScale, { passive: true });
 
+updatePhraseAnimDurations();
 updateViewportScale();
 
 for (let i = 0; i < INITIAL_COUNT; i += 1) {

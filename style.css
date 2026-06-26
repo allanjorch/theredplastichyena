@@ -120,6 +120,17 @@ body {
   text-transform: uppercase;
 }
 
+.phrase-stage {
+  padding-inline: 1.5rem;
+  margin-inline: -1.5rem;
+}
+
+.phrase-stage.is-clipping {
+  overflow: clip;
+  overflow-clip-margin: 1.5rem;
+  height: var(--phrase-viewport-height);
+}
+
 .phrases {
   list-style: none;
   margin: 0;
@@ -129,6 +140,10 @@ body {
   min-height: calc(
     (var(--phrase-size) * 1.35 + 2rem) * 5 + (var(--card-gap) * 4)
   );
+}
+
+.phrases.is-adding li {
+  transition: none !important;
 }
 
 .phrases li {
@@ -166,6 +181,11 @@ body {
     0 12px 24px rgba(26, 18, 16, 0.12);
 }
 
+.phrases.is-adding .phrase-link {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 .phrase-link {
   position: relative;
   z-index: 1;
@@ -195,3 +215,4 @@ body {
     padding-top: max(1.25rem, env(safe-area-inset-top));
   }
 }
+
