@@ -111,9 +111,17 @@ const POOLS = {
 
 const IMAGE_SEARCH = "https://duckduckgo.com/?iax=images&ia=images&q=";
 const INITIAL_COUNT = 5;
+const VISIBLE_COUNT = 5;
+const MAX_PHRASES = 100;
+const SWIPE_THRESHOLD = 48;
+const VIEWPORT_REF = 390;
 
 const list = document.getElementById("phrases");
+const phraseWindow = document.getElementById("phrase-window");
 const generateButton = document.getElementById("generate");
+
+const phrases = [];
+let viewOffset = 0;
 
 function pick(items) {
   return items[(Math.random() * items.length) | 0];
@@ -134,8 +142,15 @@ function imageSearchUrl(phrase) {
   return IMAGE_SEARCH + encodeURIComponent(phrase);
 }
 
-function addPhrase() {
-  const phrase = generatePhrase();
+function maxOffset() {
+  return Math.max(0, phrases.length - VISIBLE_COUNT);
+}
+
+function clampViewOffset() {
+  viewOffset = Math.min(maxOffset(), Math.max(0, viewOffset));
+}
+
+function createPhraseItem(phrase) {
   const item = document.createElement("li");
   const link = document.createElement("a");
   link.className = "phrase-link";
@@ -144,7 +159,36 @@ function addPhrase() {
   link.rel = "noopener noreferrer";
   link.textContent = phrase;
   item.append(link);
-  list.prepend(item);
+  return item;
+}
+
+function renderPhrases() {
+  clampViewOffset();
+  list.replaceChildren();
+
+  const visible = phrases.slice(viewOffset, viewOffset + VISIBLE_COUNT);
+  visible.forEach((phrase) => {
+    list.append(createPhraseItem(phrase));
+  });
+}
+
+function addPhrase() {
+  phrases.unshift(generatePhrase());
+  if (phrases.length > MAX_PHRASES) {
+    phrases.length = MAX_PHRASES;
+  }
+  viewOffset = 0;
+  renderPhrases();
+}
+
+function navigate(direction) {
+  const nextOffset = viewOffset + direction;
+  if (nextOffset < 0 || nextOffset > maxOffset()) {
+    return false;
+  }
+  viewOffset = nextOffset;
+  renderPhrases();
+  return true;
 }
 
 function shouldGenerateFromKeyboard(event) {
@@ -152,6 +196,19 @@ function shouldGenerateFromKeyboard(event) {
     return false;
   }
   return event.key === " " || event.key === "Enter";
+}
+
+function shouldNavigateFromWheel(event) {
+  if (!phraseWindow.contains(event.target)) {
+    return false;
+  }
+  return !event.target.closest("button, input, textarea, select");
+}
+
+function updateViewportScale() {
+  const vmin = Math.min(window.innerWidth, window.innerHeight);
+  const scale = Math.min(1.12, Math.max(0.86, vmin / VIEWPORT_REF));
+  document.documentElement.style.setProperty("--ui-scale", scale.toFixed(3));
 }
 
 generateButton.addEventListener("click", addPhrase);
@@ -164,6 +221,52 @@ document.addEventListener("keydown", (event) => {
   addPhrase();
 });
 
+phraseWindow.addEventListener(
+  "wheel",
+  (event) => {
+    if (!shouldNavigateFromWheel(event)) {
+      return;
+    }
+
+    const direction = event.deltaY > 0 ? 1 : -1;
+    if (navigate(direction)) {
+      event.preventDefault();
+    }
+  },
+  { passive: false }
+);
+
+let touchStartY = 0;
+
+phraseWindow.addEventListener(
+  "touchstart",
+  (event) => {
+    touchStartY = event.touches[0].clientY;
+  },
+  { passive: true }
+);
+
+phraseWindow.addEventListener(
+  "touchend",
+  (event) => {
+    const touch = event.changedTouches[0];
+    const deltaY = touch.clientY - touchStartY;
+
+    if (Math.abs(deltaY) < SWIPE_THRESHOLD) {
+      return;
+    }
+
+    navigate(deltaY < 0 ? 1 : -1);
+  },
+  { passive: true }
+);
+
+window.addEventListener("resize", updateViewportScale, { passive: true });
+
+updateViewportScale();
+
 for (let i = 0; i < INITIAL_COUNT; i += 1) {
-  addPhrase();
+  phrases.push(generatePhrase());
 }
+
+renderPhrases();
