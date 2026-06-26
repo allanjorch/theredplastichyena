@@ -129,8 +129,18 @@ const phrases = [];
 let viewOffset = 0;
 let phraseAnimLock = false;
 
+const PHRASE_GEN_ATTEMPTS = 300;
+
 function pick(items) {
   return items[(Math.random() * items.length) | 0];
+}
+
+function pickUnique(pool, usedWords) {
+  const available = pool.filter((word) => !usedWords.has(word));
+  if (available.length === 0) {
+    return null;
+  }
+  return available[(Math.random() * available.length) | 0];
 }
 
 function pickCategories() {
@@ -138,10 +148,56 @@ function pickCategories() {
   return Math.random() < 0.5 ? [joker, COLOR] : [COLOR, joker];
 }
 
-function generatePhrase() {
+function usedWordsInPhrases(phrasePartsList) {
+  const used = new Set();
+  for (const parts of phrasePartsList) {
+    for (const word of parts) {
+      used.add(word);
+    }
+  }
+  return used;
+}
+
+function formatPhrase(parts) {
+  return parts.join(" ");
+}
+
+function generatePhraseParts(usedWords = new Set()) {
+  for (let attempt = 0; attempt < PHRASE_GEN_ATTEMPTS; attempt += 1) {
+    const categories = pickCategories();
+    const trialUsed = new Set(usedWords);
+    const parts = [];
+
+    for (const category of categories) {
+      const word = pickUnique(POOLS[category], trialUsed);
+      if (!word) {
+        parts.length = 0;
+        break;
+      }
+      parts.push(word);
+      trialUsed.add(word);
+    }
+
+    if (parts.length !== 2) {
+      continue;
+    }
+
+    const animal = pickUnique(WORDS.animals, trialUsed);
+    if (!animal) {
+      continue;
+    }
+
+    parts.push(animal);
+    return parts;
+  }
+
   const parts = pickCategories().map((category) => pick(POOLS[category]));
   parts.push(pick(WORDS.animals));
-  return parts.join(" ");
+  return parts;
+}
+
+function generatePhraseForVisibleWindow(existingVisibleParts) {
+  return generatePhraseParts(usedWordsInPhrases(existingVisibleParts));
 }
 
 function imageSearchUrl(phrase) {
@@ -173,8 +229,8 @@ function renderPhrases() {
   list.replaceChildren();
 
   const visible = phrases.slice(viewOffset, viewOffset + VISIBLE_COUNT);
-  visible.forEach((phrase) => {
-    list.append(createPhraseItem(phrase));
+  visible.forEach((parts) => {
+    list.append(createPhraseItem(formatPhrase(parts)));
   });
 }
 
@@ -318,14 +374,15 @@ function addPhrase() {
   }
 
   const wasAtTop = viewOffset === 0;
-  phrases.unshift(generatePhrase());
+  const visibleNeighbors = phrases.slice(0, VISIBLE_COUNT - 1);
+  phrases.unshift(generatePhraseForVisibleWindow(visibleNeighbors));
   if (phrases.length > MAX_PHRASES) {
     phrases.length = MAX_PHRASES;
   }
   viewOffset = 0;
 
   if (wasAtTop && list.children.length > 0 && !prefersReducedMotion()) {
-    animateAddAtTop(phrases[0]);
+    animateAddAtTop(formatPhrase(phrases[0]));
     return;
   }
 
@@ -456,7 +513,7 @@ updatePhraseAnimDurations();
 updateViewportScale();
 
 for (let i = 0; i < INITIAL_COUNT; i += 1) {
-  phrases.push(generatePhrase());
+  phrases.push(generatePhraseForVisibleWindow(phrases));
 }
 
 renderPhrases();
