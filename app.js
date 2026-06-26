@@ -117,10 +117,13 @@ const SWIPE_THRESHOLD = 48;
 const VIEWPORT_REF = 390;
 const PHRASE_ENTER_MS = 850;
 
+const THEME_KEY = "trph-theme";
+
 const list = document.getElementById("phrases");
 const phraseWindow = document.getElementById("phrase-window");
 const phraseStage = document.getElementById("phrase-stage");
 const generateButton = document.getElementById("generate");
+const themeToggle = document.getElementById("theme-toggle");
 
 const phrases = [];
 let viewOffset = 0;
@@ -363,7 +366,40 @@ function updateViewportScale() {
   document.documentElement.style.setProperty("--ui-scale", scale.toFixed(3));
 }
 
+function getTheme() {
+  return document.documentElement.getAttribute("data-theme") === "dark"
+    ? "dark"
+    : "light";
+}
+
+function updateThemeToggle(theme) {
+  const isDark = theme === "dark";
+  themeToggle.setAttribute("aria-pressed", String(isDark));
+  themeToggle.setAttribute(
+    "aria-label",
+    isDark ? "Switch to light theme" : "Switch to dark theme"
+  );
+}
+
+function applyTheme(theme) {
+  if (theme === "dark") {
+    document.documentElement.setAttribute("data-theme", "dark");
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+  }
+  localStorage.setItem(THEME_KEY, theme);
+  updateThemeToggle(theme);
+}
+
+function initTheme() {
+  updateThemeToggle(getTheme());
+}
+
 generateButton.addEventListener("click", addPhrase);
+
+themeToggle.addEventListener("click", () => {
+  applyTheme(getTheme() === "dark" ? "light" : "dark");
+});
 
 document.addEventListener("keydown", (event) => {
   if (!shouldGenerateFromKeyboard(event)) {
@@ -415,6 +451,7 @@ phraseWindow.addEventListener(
 
 window.addEventListener("resize", updateViewportScale, { passive: true });
 
+initTheme();
 updatePhraseAnimDurations();
 updateViewportScale();
 

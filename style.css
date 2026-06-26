@@ -8,14 +8,42 @@
   --accent: #c62828;
   --accent-dark: #8e0000;
   --border: #e4d7cb;
-  --shadow: 0 10px 30px rgba(26, 18, 16, 0.08);
+  --bg-glow: rgba(198, 40, 40, 0.08);
+  --card-border-mix: #fff;
   --card-top: #f9f4ee;
   --card-bottom: #f2ebe2;
   --card-gradient: linear-gradient(180deg, var(--card-top) 0%, var(--card-bottom) 100%);
+  --card-inset-highlight: rgba(255, 255, 255, 0.9);
+  --card-shine: rgba(255, 255, 255, 0.55);
+  --card-shadow: 0 8px 18px rgba(26, 18, 16, 0.09);
+  --card-shadow-hover: 0 12px 24px rgba(26, 18, 16, 0.12);
+  --button-shadow: drop-shadow(0 8px 16px rgba(26, 18, 16, 0.14));
+  --button-shadow-hover: drop-shadow(0 10px 20px rgba(26, 18, 16, 0.18));
   --phrase-size: calc(clamp(1.15rem, 4.5vw, 1.55rem) * var(--ui-scale));
   --button-size: calc(4.25rem * var(--ui-scale));
   --face-space: calc(2rem * var(--ui-scale));
   --card-gap: calc(0.85rem * var(--ui-scale));
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #12100f;
+  --surface: #1c1816;
+  --ink: #f0e8df;
+  --muted: #9a877c;
+  --accent: #e04a4a;
+  --accent-dark: #ff7b7b;
+  --border: #3a302a;
+  --bg-glow: rgba(224, 74, 74, 0.12);
+  --card-border-mix: #000;
+  --card-top: #2a2420;
+  --card-bottom: #1f1b18;
+  --card-inset-highlight: rgba(255, 255, 255, 0.07);
+  --card-shine: rgba(255, 255, 255, 0.1);
+  --card-shadow: 0 8px 20px rgba(0, 0, 0, 0.38);
+  --card-shadow-hover: 0 12px 26px rgba(0, 0, 0, 0.48);
+  --button-shadow: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.45));
+  --button-shadow-hover: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.55));
 }
 
 *,
@@ -37,8 +65,61 @@ body {
   line-height: 1.5;
   color: var(--ink);
   background:
-    radial-gradient(circle at top, rgba(198, 40, 40, 0.08), transparent 32rem),
+    radial-gradient(circle at top, var(--bg-glow), transparent 32rem),
     var(--bg);
+  transition: background 0.35s ease, color 0.35s ease;
+}
+
+.theme-toggle {
+  position: fixed;
+  z-index: 2;
+  top: max(0.8rem, env(safe-area-inset-top));
+  right: max(0.8rem, env(safe-area-inset-right));
+  display: grid;
+  place-items: center;
+  width: calc(2rem * var(--ui-scale));
+  height: calc(2rem * var(--ui-scale));
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  color: var(--muted);
+  opacity: 0.5;
+  cursor: pointer;
+  transition:
+    opacity 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.35s ease;
+}
+
+.theme-toggle:hover {
+  opacity: 0.9;
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.theme-toggle:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.theme-icon {
+  width: calc(0.95rem * var(--ui-scale));
+  height: calc(0.95rem * var(--ui-scale));
+}
+
+.theme-icon-sun {
+  display: none;
+}
+
+[data-theme="dark"] .theme-icon-moon {
+  display: none;
+}
+
+[data-theme="dark"] .theme-icon-sun {
+  display: block;
 }
 
 .page {
@@ -80,7 +161,7 @@ body {
   background: none;
   box-sizing: content-box;
   cursor: pointer;
-  filter: drop-shadow(0 8px 16px rgba(26, 18, 16, 0.14));
+  filter: var(--button-shadow);
   transition: transform 0.15s ease, filter 0.15s ease;
 }
 
@@ -92,7 +173,7 @@ body {
 
 .red-button:hover {
   transform: scale(1.06);
-  filter: drop-shadow(0 10px 20px rgba(26, 18, 16, 0.18));
+  filter: var(--button-shadow-hover);
 }
 
 .red-button:active {
@@ -149,13 +230,17 @@ body {
 .phrases li {
   position: relative;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--border) 75%, #fff);
+  border: 1px solid color-mix(in srgb, var(--border) 75%, var(--card-border-mix));
   border-radius: 1.15rem;
   background: var(--card-gradient);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 8px 18px rgba(26, 18, 16, 0.09);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+    inset 0 1px 0 var(--card-inset-highlight),
+    var(--card-shadow);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.35s ease,
+    border-color 0.35s ease;
 }
 
 .phrases li::before {
@@ -167,7 +252,7 @@ body {
   height: 58%;
   background: radial-gradient(
     ellipse at center,
-    rgba(255, 255, 255, 0.55) 0%,
+    var(--card-shine) 0%,
     transparent 70%
   );
   pointer-events: none;
@@ -177,8 +262,8 @@ body {
 .phrases li:has(.phrase-link:focus-visible) {
   transform: translateY(-2px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 12px 24px rgba(26, 18, 16, 0.12);
+    inset 0 1px 0 var(--card-inset-highlight),
+    var(--card-shadow-hover);
 }
 
 .phrases.is-adding .phrase-link {
@@ -215,4 +300,3 @@ body {
     padding-top: max(1.25rem, env(safe-area-inset-top));
   }
 }
-
